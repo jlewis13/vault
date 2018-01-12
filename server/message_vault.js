@@ -70,8 +70,10 @@ class MessageVault {
             console.error("Received unsupported message:", msgEnvelope);
             return;
         }
+        console.log('From: ' + JSON.stringify(msg.sender.userId) + ':' + msg.sender.tagPresentation);
         const dist = await this.resolveTags(msg.distribution.expression);
         const memberIds = dist.userids;
+        console.log('To: ' + JSON.stringify(memberIds));
         const members = await this.getUsers(memberIds);
         const memberTags = members.map(this.fqTag);
         const id = uuid4();
@@ -102,6 +104,9 @@ class MessageVault {
             if (msg.data.body) {
                 entry.body = {};
                 for (const x of msg.data.body) {
+                    if (x.type == 'text/plain') {
+                        console.log(JSON.stringify(x.value));
+                    }
                     entry.body[x.type] = x.value;
                 }
             }

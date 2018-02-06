@@ -1,0 +1,7 @@
+{
+  "itemDisplayName": "Azure Container Instances - Deploy ForstaLabs Vault",
+  "description": "Deploy Forsta Vault to Azure Container Instances.",
+  "summary": "This will deploy the ForstaLabs Vault into a linuz container on Azure.",
+  "githubUsername": "chriswil",
+  "dateUpdated": "2018-02-06"
+}

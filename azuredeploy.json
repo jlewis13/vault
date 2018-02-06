@@ -1,0 +1,178 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "name": {
+      "type": "string",
+      "metadata": {
+        "description": "Name for the container group"
+      },
+      "defaultValue": "forstavaultgroup"
+    },
+    "image": {
+      "type": "string",
+      "metadata": {
+        "description": "Container image to deploy. Should be of the form accountName/imagename:tag for images stored in Docker Hub or a fully qualified URI for a private registry like the Azure Container Registry."
+      },
+      "defaultValue": "forstalabs/vault"
+    },
+    "port": {
+      "type": "string",
+      "metadata": {
+        "description": "Port to open on the container and the public IP address."
+      },
+      "defaultValue": "4096"
+    },
+    "cpuCores": {
+      "type": "string",
+      "metadata": {
+        "description": "The number of CPU cores to allocate to the container. Must be an integer."
+      },
+      "defaultValue": "1.0"
+    },
+    "memoryInGb": {
+      "type": "string",
+      "metadata": {
+        "description": "The amount of memory to allocate to the container in gigabytes."
+      },
+      "defaultValue": "1.5"
+    },
+    "skuName": {
+      "type": "string",
+      "defaultValue": "F1",
+      "allowedValues": [
+        "F1",
+        "D1",
+        "B1",
+        "B2",
+        "B3",
+        "S1",
+        "S2",
+        "S3",
+        "P1",
+        "P2",
+        "P3",
+        "P4"
+      ],
+      "metadata": {
+        "description": "Describes plan's pricing tier and instance size. Check details at https://azure.microsoft.com/en-us/pricing/details/app-service/"
+      }
+    },
+    "cacheSKUName": {
+      "type": "string",
+      "allowedValues": [
+        "Basic",
+        "Standard"
+      ],
+      "defaultValue": "Basic",
+      "metadata": {
+        "description": "The pricing tier of the new Azure Redis Cache."
+      }
+    },
+    "cacheSKUFamily": {
+      "type": "string",
+      "allowedValues": [
+        "C"
+      ],
+      "defaultValue": "C",
+      "metadata": {
+        "description": "The family for the sku."
+      }
+    },
+    "cacheSKUCapacity": {
+      "type": "int",
+      "allowedValues": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "defaultValue": 0,
+      "metadata": {
+        "description": "The size of the new Azure Redis Cache instance. "
+      }
+    }
+  },
+  "variables": {
+    "cacheName": "[concat('cache', uniqueString(resourceGroup().id))]"
+  },
+  "resources": [
+    {
+      "name": "[parameters('name')]",
+      "type": "Microsoft.ContainerInstance/containerGroups",
+      "apiVersion": "2017-08-01-preview",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[concat('Microsoft.Cache/Redis/', variables('cacheName'))]"
+      ],
+      "properties": {
+        "containers": [
+          {
+            "name": "[parameters('name')]",
+            "properties": {
+              "image": "[parameters('image')]",
+              "ports": [
+                {
+                  "port": "[parameters('port')]"
+                }
+              ],
+              "environmentVariables": [
+                {
+                  "name": "RELAY_STORAGE_BACKING",
+                  "value": "redis"
+                },
+                {
+                  "name": "REDIS_URL",
+                  "value": "[concat(variables('cacheName'),'.redis.cache.windows.net,abortConnect=false,ssl=true,password=', listKeys(resourceId('Microsoft.Cache/Redis', variables('cacheName')), '2015-08-01').primaryKey)]"
+                }
+              ],
+              "resources": {
+                "requests": {
+                  "cpu": "[parameters('cpuCores')]",
+                  "memoryInGb": "[parameters('memoryInGb')]"
+                }
+              }
+            }
+          }
+        ],
+        "osType": "Linux",
+        "ipAddress": {
+          "type": "Public",
+          "ports": [
+            {
+              "protocol": "tcp",
+              "port": "[parameters('port')]"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "[variables('cacheName')]",
+      "type": "Microsoft.Cache/Redis",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2016-04-01",
+      "dependsOn": [],
+      "tags": {
+        "displayName": "cache"
+      },
+      "properties": {
+        "sku": {
+          "name": "[parameters('cacheSKUName')]",
+          "family": "[parameters('cacheSKUFamily')]",
+          "capacity": "[parameters('cacheSKUCapacity')]",
+          "enableNonSslPort":  false
+        }
+      }
+    }
+  ],
+  "outputs": {
+    "containerIPv4Address": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.ContainerInstance/containerGroups/', parameters('name'))).ipAddress.ip]"
+    }
+  }
+}

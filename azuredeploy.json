@@ -119,16 +119,6 @@
                   "port": "[parameters('port')]"
                 }
               ],
-              "environmentVariables": [
-                {
-                  "name": "RELAY_STORAGE_BACKING",
-                  "value": "redis"
-                },
-                {
-                  "name": "REDIS_URL",
-                  "value": "[concat(variables('cacheName'),'.redis.cache.windows.net,abortConnect=false,ssl=true,password=', listKeys(resourceId('Microsoft.Cache/Redis', variables('cacheName')), '2015-08-01').primaryKey)]"
-                }
-              ],
               "resources": {
                 "requests": {
                   "cpu": "[parameters('cpuCores')]",
